@@ -15,6 +15,8 @@ motor_2_pin = 38 #ABOVE
 motor_2_1 = 16
 motor_2_2 = 18
 
+default_speed = 1000
+
 # Image
 rho = 1
 theta = np.pi / 180
@@ -216,8 +218,15 @@ if __name__ == '__main__':
         print(steering_angle);
         # Motors
 
-        # motor_1.start(left_speed)
-        # motor_2.start(Right_speed)
+        if steering_angle == 90:
+            motor_1.start(default_speed)
+            motor_2.start(default_speed)
+        elif steering_angle > 90:
+            motor_1.start(default_speed - (steering_angle-90))
+            motor_2.start(default_speed)
+        elif steering_angle < 90:
+            motor_1.start(default_speed)
+            motor_2.start(default_speed - steering_angle)
 
         # Exit key
         key = cv2.waitKey(1)
