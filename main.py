@@ -15,7 +15,7 @@ motor_2_pin = 38 #ABOVE
 motor_2_1 = 16
 motor_2_2 = 18
 
-default_speed = 1000
+default_speed = 90
 
 # Image
 rho = 1
@@ -222,11 +222,11 @@ if __name__ == '__main__':
             motor_1.start(default_speed)
             motor_2.start(default_speed)
         elif steering_angle > 90:
-            motor_1.start(default_speed - (steering_angle-90))
+            motor_1.start(steering_angle-90)
             motor_2.start(default_speed)
         elif steering_angle < 90:
             motor_1.start(default_speed)
-            motor_2.start(default_speed - steering_angle)
+            motor_2.start(steering_angle)
 
         # Exit key
         key = cv2.waitKey(1)
