@@ -1,7 +1,21 @@
 import cv2
 import numpy as np
 import math
+import RPi.GPIO as GPIO
 
+# Motors
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BOARD)
+
+motor_1_pin = 40 #FIND PWM PIN
+motor_1_1 = 29
+motor_1_2 = 31
+
+motor_2_pin = 38 #ABOVE
+motor_2_1 = 16
+motor_2_2 = 18
+
+# Image
 rho = 1
 theta = np.pi / 180
 min_threshold = 10
@@ -16,18 +30,18 @@ video.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
 def convert_to_hsv(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    cv2.imshow("HSV", hsv)
+    # cv2.imshow("HSV", hsv)
 
     return hsv
 
 
 def detect_edges(frame):
-    lower_limit = np.array([90, 120, 0], dtype = "uint8")  # lower limit of blue
-    upper_limit = np.array([150, 255, 255], dtype = "uint8")  # upper limit of blue
+    lower_limit = np.array([90, 120, 0], dtype="uint8")  # lower limit of blue
+    upper_limit = np.array([150, 255, 255], dtype="uint8")  # upper limit of blue
     mask = cv2.inRange(hsv, lower_limit, upper_limit)  # filter for colour limits
 
     edges = cv2.Canny(mask, 50, 100)
-    cv2.imshow("edges", edges)
+    # cv2.imshow("edges", edges)
 
     return edges
 
@@ -39,15 +53,15 @@ def select_roi(edges):
     # focus on lower half of screen
     # specify coordinates of 4 points(lower left, upper left, upper right, lower right)
     polygon = np.array([[
-      (0, height),
-      (0, height/2),
-      (width, height/2),
-      (width, height),
+        (0, height),
+        (0, height/2),
+        (width, height/2),
+        (width, height),
     ]], np.int32)
 
     cv2.fillPoly(mask, polygon, 255)  # fill polygon with blue
     cropped_edges = cv2.bitwise_and(edges, mask)
-    cv2.imshow("roi", cropped_edges)
+    # cv2.imshow("roi", cropped_edges)
 
     return cropped_edges
 
@@ -125,27 +139,32 @@ def average_slope_intercept(frame, line_segments):
 
 def get_steering_angle(frame, lane_lines):
     height, width, _ = frame.shape
+    x_offset, y_offset = 0, 0
+
     if len(lane_lines) == 2: # if two lane lines are detected
-      _, _, left_x2, _ = lane_lines[0][0] # extract left x2 from lane_lines array
-      _, _, right_x2, _ = lane_lines[1][0] # extract right x2 from lane_lines array
-      mid = int(width / 2)
-      x_offset = (left_x2 + right_x2) / 2 - mid
-      y_offset = int(height / 2)
+        _, _, left_x2, _ = lane_lines[0][0] # extract left x2 from lane_lines array
+        _, _, right_x2, _ = lane_lines[1][0] # extract right x2 from lane_lines array
+        mid = int(width / 2)
+        x_offset = (left_x2 + right_x2) / 2 - mid
+        y_offset = int(height / 2)
+
     elif len(lane_lines) == 1: # if only one line is detected
-      x1, _, x2, _ = lane_lines[0][0]
-      x_offset = x2 - x1
-      y_offset = int(height / 2)
+        x1, _, x2, _ = lane_lines[0][0]
+        x_offset = x2 - x1
+        y_offset = int(height / 2)
+
     elif len(lane_lines) == 0: # if no line is detected
-      x_offset = 0
-      y_offset = int(height / 2)
+        x_offset = 0
+        y_offset = int(height / 2)
+
     angle_to_mid_radian = math.atan(x_offset / y_offset)
     angle_to_mid_deg = int(angle_to_mid_radian * 180.0 / math.pi)
     steering_angle = angle_to_mid_deg + 90
+
     return steering_angle
 
 
 def display_heading_line(frame, steering_angle, line_color=(0, 0, 255), line_width=5):
-
     heading_image = np.zeros_like(frame)
     height, width, _ = frame.shape
     steering_angle_radian = steering_angle / 180.0 * math.pi
@@ -156,11 +175,32 @@ def display_heading_line(frame, steering_angle, line_color=(0, 0, 255), line_wid
     cv2.line(heading_image, (x1, y1), (x2, y2), line_color, line_width)
     heading_image = cv2.addWeighted(frame, 0.8, heading_image, 1, 1)
     cv2.imshow("heading", heading_image)
+
     return heading_image
 
 
 if __name__ == '__main__':
+    # init
+    GPIO.setup(motor_1_pin, GPIO.OUT)
+    GPIO.setup(motor_2_pin, GPIO.OUT)
+    GPIO.setup(motor_1_1, GPIO.OUT)
+    GPIO.setup(motor_1_2, GPIO.OUT)
+    GPIO.setup(motor_2_1, GPIO.OUT)
+    GPIO.setup(motor_2_2, GPIO.OUT)
+
+    GPIO.output(motor_1_1, True)
+    GPIO.output(motor_1_2, False)
+    GPIO.output(motor_2_1, False)
+    GPIO.output(motor_2_2, True)
+
+    motor_1 = GPIO.PWM(motor_1_pin, 1000)
+    motor_1.stop()
+
+    motor_2 = GPIO.PWM(motor_2_pin, 1000)
+    motor_2.stop()
+
     while True:
+        # Lane detection
         ret, frame = video.read()
         # frame = cv2.flip(frame,-1) # used to flip the image vertically
         hsv = convert_to_hsv(frame)  # convert to hsv
@@ -171,8 +211,15 @@ if __name__ == '__main__':
         lane_lines_image = display_lines(frame, lane_lines)
         steering_angle = get_steering_angle(frame, lane_lines)
         heading_image = display_heading_line(lane_lines_image, steering_angle)
+        # cv2.imshow('original', frame)
 
-        cv2.imshow('original', frame)
+        print(steering_angle);
+        # Motors
+
+        # motor_1.start(left_speed)
+        # motor_2.start(Right_speed)
+
+        # Exit key
         key = cv2.waitKey(1)
         if key == 27:
             break
