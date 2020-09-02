@@ -217,16 +217,17 @@ if __name__ == '__main__':
 
         print(steering_angle);
         # Motors
-
-        if steering_angle == 90:
-            motor_1.start(default_speed)
-            motor_2.start(default_speed)
-        elif steering_angle > 90:
-            motor_1.start(steering_angle-90)
-            motor_2.start(default_speed)
-        elif steering_angle < 90:
-            motor_1.start(default_speed)
-            motor_2.start(steering_angle)
+        motor_1.start(default_speed)
+        motor_2.start(default_speed)
+        #if steering_angle == 90:
+        #    motor_1.start(default_speed)
+        #    motor_2.start(default_speed)
+        #elif steering_angle > 90:
+        #    motor_1.start(steering_angle-90)
+        #    motor_2.start(default_speed)
+        #elif steering_angle < 90:
+        #    motor_1.start(default_speed)
+        #    motor_2.start(steering_angle)
 
         # Exit key
         key = cv2.waitKey(1)
